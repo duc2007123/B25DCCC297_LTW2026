@@ -118,5 +118,150 @@
     "question": "const { a, ...rest } = { a: 1, b: 2, c: 3 }; rest có giá trị nào?",
     "options": ["{ a: 1 }", "[2, 3]", "{ b: 2, c: 3 }", "undefined"],
     "answer": 2
+  },
+  {
+    "id": 16,
+    "level": 1,
+    "question": "Thẻ HTML nào biểu thị nội dung chính của trang?",
+    "options": ["<main>", "<section>", "<footer>", "<aside>"],
+    "answer": 0
+  },
+  {
+    "id": 17,
+    "level": 1,
+    "question": "Thuộc tính nào cung cấp văn bản thay thế cho hình ảnh?",
+    "options": ["title", "alt", "src", "name"],
+    "answer": 1
+  },
+  {
+    "id": 18,
+    "level": 1,
+    "question": "Trong Flexbox, thuộc tính nào điều khiển hướng sắp xếp các phần tử?",
+    "options": ["justify-content", "align-items", "flex-direction", "flex-wrap"],
+    "answer": 2
+  },
+  {
+    "id": 19,
+    "level": 1,
+    "question": "Giá trị box-sizing nào bao gồm cả padding và border trong width?",
+    "options": ["content-box", "border-box", "inherit-box", "padding-box"],
+    "answer": 1
+  },
+  {
+    "id": 20,
+    "level": 1,
+    "question": "Trong React, prop key giúp React làm gì khi render danh sách?",
+    "options": [
+      "Nhận diện ổn định từng phần tử",
+      "Tự động sắp xếp danh sách",
+      "Tạo state cho phần tử",
+      "Ẩn phần tử khỏi giao diện"
+    ],
+    "answer": 0
+  },
+  {
+    "id": 21,
+    "level": 2,
+    "question": "Arrow function x => x + 1 trả về gì khi gọi với x bằng 2?",
+    "options": ["2", "3", "x + 1", "undefined"],
+    "answer": 1
+  },
+  {
+    "id": 22,
+    "level": 2,
+    "question": "Cách nào tạo mảng mới bằng cách thêm item mà không sửa mảng cũ?",
+    "options": [
+      "items.push(item)",
+      "items = [...items, item]",
+      "items.splice(0, 0, item)",
+      "items.length = items.length + 1"
+    ],
+    "answer": 1
+  },
+  {
+    "id": 23,
+    "level": 2,
+    "question": "Trong React, input controlled thường nhận giá trị hiện tại từ đâu?",
+    "options": ["Biến toàn cục", "DOM trực tiếp", "React state", "Tên component"],
+    "answer": 2
+  },
+  {
+    "id": 24,
+    "level": 2,
+    "question": "Cú pháp nào cập nhật state dựa trên giá trị trước đó một cách an toàn?",
+    "options": [
+      "setCount(count + 1)",
+      "setCount((previous) => previous + 1)",
+      "count = count + 1",
+      "setCount(++count)"
+    ],
+    "answer": 1
+  },
+  {
+    "id": 25,
+    "level": 2,
+    "question": "Cách nào thường dùng để render nội dung có điều kiện trong JSX?",
+    "options": [
+      "Điều kiện && <Component />",
+      "Dùng thẻ <if>",
+      "Gọi setState trong JSX",
+      "Dùng vòng lặp while trong JSX"
+    ],
+    "answer": 0
+  },
+  {
+    "id": 26,
+    "level": 3,
+    "question": "Mảng dependency của useEffect quyết định điều gì?",
+    "options": [
+      "Tên của component",
+      "Khi nào effect cần chạy lại",
+      "Số phần tử React render",
+      "Giá trị trả về của JSX"
+    ],
+    "answer": 1
+  },
+  {
+    "id": 27,
+    "level": 3,
+    "question": "Trong React Router, hook nào điều hướng bằng lệnh trong component?",
+    "options": ["useParams", "useLocation", "useNavigate", "useState"],
+    "answer": 2
+  },
+  {
+    "id": 28,
+    "level": 3,
+    "question": "Khi đăng ký sự kiện trong useEffect, cleanup nên làm gì?",
+    "options": [
+      "Đăng ký thêm một listener",
+      "Gọi render thủ công",
+      "Xóa toàn bộ state",
+      "Gỡ listener đã đăng ký"
+    ],
+    "answer": 3
+  },
+  {
+    "id": 29,
+    "level": 3,
+    "question": "Cách nào sắp xếp mảng số mà không thay đổi mảng state ban đầu?",
+    "options": [
+      "[...numbers].sort((a, b) => a - b)",
+      "numbers.sort((a, b) => a - b)",
+      "numbers.reverse()",
+      "numbers.push(0)"
+    ],
+    "answer": 0
+  },
+  {
+    "id": 30,
+    "level": 3,
+    "question": "Luồng dữ liệu props trong React thông thường đi theo hướng nào?",
+    "options": [
+      "Từ component con lên component cha",
+      "Từ component cha xuống component con",
+      "Giữa các component không liên quan",
+      "Từ DOM vào React"
+    ],
+    "answer": 1
   }
 ]

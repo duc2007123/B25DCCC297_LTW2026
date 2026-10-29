@@ -14,10 +14,12 @@ beforeEach(() => {
   window.localStorage.clear();
   axios.get.mockReset();
   axios.get.mockResolvedValue({ data: questions });
+  jest.spyOn(Math, 'random').mockReturnValue(0.999999);
 });
 
 afterEach(() => {
   jest.useRealTimers();
+  jest.restoreAllMocks();
 });
 
 test('loads the question bank from the home page', async () => {
@@ -34,7 +36,7 @@ test('loads the question bank from the home page', async () => {
   expect(screen.getByRole('heading', { name: /ai là triệu phú/i })).toBeInTheDocument();
   await userEvent.click(screen.getByRole('link', { name: 'Ngân hàng câu hỏi' }));
 
-  expect(await screen.findByText('Có 15 câu hỏi')).toBeInTheDocument();
+  expect(await screen.findByText('Có 30 câu hỏi')).toBeInTheDocument();
   expect(axios.get).toHaveBeenCalledWith('/data/questions.json', expect.objectContaining({
     signal: expect.any(AbortSignal),
   }));
@@ -98,7 +100,7 @@ test('shows loading before the question request resolves', async () => {
     resolveRequest({ data: questions });
   });
 
-  expect(screen.getByText('Có 15 câu hỏi')).toBeInTheDocument();
+  expect(screen.getByText('Có 30 câu hỏi')).toBeInTheDocument();
   unmount();
 });
 
@@ -119,7 +121,7 @@ test('filters questions by difficulty and case-insensitive question text', async
   fireEvent.change(screen.getByLabelText('Mức độ'), {
     target: { value: '3' },
   });
-  expect(screen.getByText('Có 5 câu hỏi')).toBeInTheDocument();
+  expect(screen.getByText('Có 10 câu hỏi')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: /component nào là chỗ hiển thị route con/i })).toBeInTheDocument();
 
   fireEvent.change(screen.getByLabelText('Mức độ'), {
@@ -129,9 +131,10 @@ test('filters questions by difficulty and case-insensitive question text', async
     target: { value: 'HOOK' },
   });
 
-  expect(screen.getByText('Có 2 câu hỏi')).toBeInTheDocument();
+  expect(screen.getByText('Có 3 câu hỏi')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: /Hook nào dùng để khai báo state/i })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: /Hook nào đọc giá trị :id/i })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /hook nào điều hướng bằng lệnh/i })).toBeInTheDocument();
 });
 
 test('shows the correct answer on a question detail route', async () => {
@@ -317,6 +320,55 @@ test('uses 50:50 and audience help, answers by keyboard, and quits with the curr
   expect(JSON.parse(window.localStorage.getItem('ltw_trieuphu_history'))[0]).toEqual(
     expect.objectContaining({ name: 'An', correctCount: 1, prize: 200000 }),
   );
+});
+
+test('calls a relative for three seconds, shows a suggestion, and uses the lifeline only once', async () => {
+  jest.useFakeTimers();
+  Math.random.mockReturnValue(0);
+
+  await act(async () => {
+    render(
+      <MemoryRouter
+        initialEntries={['/']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <App />
+      </MemoryRouter>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  fireEvent.change(screen.getByLabelText('Tên người chơi'), {
+    target: { value: 'An' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu' }));
+  fireEvent.click(screen.getByRole('button', { name: /^Gọi người thân/ }));
+
+  expect(screen.getByText('Đang gọi cho người thân...')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Gọi người thân · Đã dùng/ })).toBeDisabled();
+
+  act(() => {
+    jest.advanceTimersByTime(2999);
+  });
+  expect(screen.getByText('Đang gọi cho người thân...')).toBeInTheDocument();
+
+  act(() => {
+    jest.advanceTimersByTime(1);
+  });
+  expect(screen.getByText('Người thân gợi ý đáp án B.')).toBeInTheDocument();
+
+  fireEvent.keyDown(window, { key: 'b' });
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  act(() => {
+    jest.advanceTimersByTime(2000);
+  });
+
+  expect(screen.getByText('Câu 2/15')).toBeInTheDocument();
+  expect(screen.queryByText('Người thân gợi ý đáp án B.')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Gọi người thân · Đã dùng/ })).toBeDisabled();
 });
 
 test('ends the game when the timer expires and records the timeout result', async () => {

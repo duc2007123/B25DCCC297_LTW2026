@@ -3,6 +3,7 @@ const Lifelines = ({
   status,
   onFiftyFifty,
   onAskAudience,
+  onCallFriend,
   onQuit,
 }) => (
   <section className="lifelines" aria-label="Quyền trợ giúp">
@@ -21,6 +22,13 @@ const Lifelines = ({
         onClick={onAskAudience}
       >
         Hỏi khán giả {usedLifelines.audience ? '· Đã dùng' : ''}
+      </button>
+      <button
+        type="button"
+        disabled={status !== 'answering' || usedLifelines.phone}
+        onClick={onCallFriend}
+      >
+        Gọi người thân {usedLifelines.phone ? '· Đã dùng' : ''}
       </button>
       <button
         className="lifeline-quit"

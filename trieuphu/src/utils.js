@@ -1,5 +1,41 @@
 import { MILESTONES, PRIZES } from './data';
 
+const shuffle = (items, random) => {
+  const shuffledItems = [...items];
+
+  for (let index = shuffledItems.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(random() * (index + 1));
+    [shuffledItems[index], shuffledItems[randomIndex]] = [
+      shuffledItems[randomIndex],
+      shuffledItems[index],
+    ];
+  }
+
+  return shuffledItems;
+};
+
+export const selectGameQuestions = (questions, random = Math.random) => (
+  [1, 2, 3].flatMap((level) => {
+    const levelQuestions = questions.filter((question) => question.level === level);
+
+    return shuffle(levelQuestions, random)
+      .slice(0, 5)
+      .map((question) => {
+        const options = shuffle(
+          question.options.map((option, index) => ({ option, index })),
+          random,
+        );
+        const answer = options.findIndex((option) => option.index === question.answer);
+
+        return {
+          ...question,
+          options: options.map(({ option }) => option),
+          answer,
+        };
+      });
+  })
+);
+
 export const calcPrize = (correctCount, reason) => {
   if (reason === 'win') {
     return PRIZES[PRIZES.length - 1];
@@ -43,4 +79,20 @@ export const getAudiencePercentages = (question, hiddenOptions = []) => {
   }
 
   return percentages;
+};
+
+export const getPhoneSuggestion = (question, hiddenOptions = [], random = Math.random) => {
+  if (random() < 0.8) {
+    return question.answer;
+  }
+
+  const visibleWrongOptions = question.options
+    .map((_, index) => index)
+    .filter((index) => index !== question.answer && !hiddenOptions.includes(index));
+
+  if (visibleWrongOptions.length === 0) {
+    return question.answer;
+  }
+
+  return visibleWrongOptions[Math.floor(random() * visibleWrongOptions.length)];
 };

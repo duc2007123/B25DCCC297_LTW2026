@@ -660,6 +660,16 @@ td a:hover {
   border-radius: 12px;
 }
 
+.phone-suggestion {
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  color: #34415d;
+  background: #f1f4fb;
+  border-left: 3px solid #5276c4;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
 .audience-chart__bars {
   display: grid;
   gap: 10px;

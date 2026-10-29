@@ -6,10 +6,16 @@ import MoneyLadder from '../components/MoneyLadder';
 import QuestionCard from '../components/QuestionCard';
 import Timer from '../components/Timer';
 import { TIME_PER_QUESTION } from '../data';
-import { calcPrize, getAudiencePercentages } from '../utils';
+import {
+  calcPrize,
+  getAudiencePercentages,
+  getPhoneSuggestion,
+  selectGameQuestions,
+} from '../utils';
 
 const Play = ({ questions, loading, loadError, playerName, onFinish }) => {
   const navigate = useNavigate();
+  const [gameQuestions, setGameQuestions] = useState([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [remaining, setRemaining] = useState(TIME_PER_QUESTION);
@@ -21,10 +27,23 @@ const Play = ({ questions, loading, loadError, playerName, onFinish }) => {
   const [usedLifelines, setUsedLifelines] = useState({
     fiftyFifty: false,
     audience: false,
+    phone: false,
   });
+  const [phoneCallStatus, setPhoneCallStatus] = useState('idle');
+  const [phoneSuggestion, setPhoneSuggestion] = useState(null);
+  const gameInitializedRef = useRef(false);
   const remainingRef = useRef(TIME_PER_QUESTION);
   const finishedRef = useRef(false);
-  const question = questions[questionIndex];
+  const question = gameQuestions[questionIndex];
+
+  useEffect(() => {
+    if (loading || gameInitializedRef.current || questions.length === 0) {
+      return;
+    }
+
+    setGameQuestions(selectGameQuestions(questions));
+    gameInitializedRef.current = true;
+  }, [loading, questions]);
 
   const finishGame = useCallback((reason, finalCorrectCount) => {
     if (finishedRef.current) {
@@ -98,6 +117,8 @@ const Play = ({ questions, loading, loadError, playerName, onFinish }) => {
       setSelectedAnswer(null);
       setHiddenOptions([]);
       setAudiencePercentages(null);
+      setPhoneCallStatus('idle');
+      setPhoneSuggestion(null);
       setIsTimedOut(false);
       remainingRef.current = TIME_PER_QUESTION;
       setRemaining(TIME_PER_QUESTION);
@@ -115,6 +136,19 @@ const Play = ({ questions, loading, loadError, playerName, onFinish }) => {
     selectedAnswer,
     status,
   ]);
+
+  useEffect(() => {
+    if (status !== 'answering' || phoneCallStatus !== 'calling' || !question) {
+      return undefined;
+    }
+
+    const phoneTimeout = window.setTimeout(() => {
+      setPhoneSuggestion(getPhoneSuggestion(question, hiddenOptions));
+      setPhoneCallStatus('suggested');
+    }, 3000);
+
+    return () => window.clearTimeout(phoneTimeout);
+  }, [hiddenOptions, phoneCallStatus, question, status]);
 
   useEffect(() => {
     if (!question || !playerName.trim()) {
@@ -186,13 +220,22 @@ const Play = ({ questions, loading, loadError, playerName, onFinish }) => {
     setUsedLifelines((previous) => ({ ...previous, audience: true }));
   };
 
+  const handleCallFriend = () => {
+    if (usedLifelines.phone || status !== 'answering' || !question) {
+      return;
+    }
+
+    setUsedLifelines((previous) => ({ ...previous, phone: true }));
+    setPhoneCallStatus('calling');
+  };
+
   const handleQuit = () => finishGame('quit', correctCount);
 
   if (!playerName.trim()) {
     return <Navigate to="/" replace />;
   }
 
-  if (loading) {
+  if (loading || gameQuestions.length === 0) {
     return <p className="notice">Đang tải câu hỏi...</p>;
   }
 
@@ -227,8 +270,19 @@ const Play = ({ questions, loading, loadError, playerName, onFinish }) => {
           status={status}
           onFiftyFifty={handleFiftyFifty}
           onAskAudience={handleAskAudience}
+          onCallFriend={handleCallFriend}
           onQuit={handleQuit}
         />
+        {phoneCallStatus === 'calling' && (
+          <p className="phone-suggestion" role="status">
+            Đang gọi cho người thân...
+          </p>
+        )}
+        {phoneCallStatus === 'suggested' && phoneSuggestion !== null && (
+          <p className="phone-suggestion" role="status">
+            Người thân gợi ý đáp án {'ABCD'[phoneSuggestion]}.
+          </p>
+        )}
         {audiencePercentages && <AudienceChart percentages={audiencePercentages} />}
       </div>
       <MoneyLadder currentQuestion={questionIndex + 1} />
