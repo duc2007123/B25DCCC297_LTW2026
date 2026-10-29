@@ -11,6 +11,7 @@ import {
   getAudiencePercentages,
   getPhoneSuggestion,
   selectGameQuestions,
+  shuffleArray,
 } from '../utils';
 
 const Play = ({ questions, loading, loadError, playerName, onFinish }) => {
@@ -198,11 +199,10 @@ const Play = ({ questions, loading, loadError, playerName, onFinish }) => {
       return;
     }
 
-    const wrongOptions = question.options
+    const wrongOptions = shuffleArray(question.options
       .map((_, index) => index)
       .filter((index) => index !== question.answer)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 2);
+    ).slice(0, 2);
 
     setHiddenOptions(wrongOptions);
     if (usedLifelines.audience) {

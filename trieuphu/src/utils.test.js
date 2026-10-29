@@ -3,6 +3,7 @@ import {
   getAudiencePercentages,
   getPhoneSuggestion,
   selectGameQuestions,
+  shuffleArray,
 } from './utils';
 import questions from '../public/data/questions.json';
 
@@ -50,6 +51,14 @@ test('selects five questions per level and shuffles choices without changing cor
   expect(gameQuestions.map(({ id }) => id)).not.toEqual(
     questions.slice(0, 15).map(({ id }) => id),
   );
+});
+
+test('shuffles a copy of an array without mutating the source array', () => {
+  const original = [0, 1, 2, 3];
+  const shuffled = shuffleArray(original, () => 0);
+
+  expect(shuffled).toEqual([1, 2, 3, 0]);
+  expect(original).toEqual([0, 1, 2, 3]);
 });
 
 test('phone suggestion is correct for 80 percent and selects a visible wrong answer otherwise', () => {

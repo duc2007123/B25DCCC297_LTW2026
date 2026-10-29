@@ -1,6 +1,6 @@
 import { MILESTONES, PRIZES } from './data';
 
-const shuffle = (items, random) => {
+export const shuffleArray = (items, random = Math.random) => {
   const shuffledItems = [...items];
 
   for (let index = shuffledItems.length - 1; index > 0; index -= 1) {
@@ -18,10 +18,10 @@ export const selectGameQuestions = (questions, random = Math.random) => (
   [1, 2, 3].flatMap((level) => {
     const levelQuestions = questions.filter((question) => question.level === level);
 
-    return shuffle(levelQuestions, random)
+    return shuffleArray(levelQuestions, random)
       .slice(0, 5)
       .map((question) => {
-        const options = shuffle(
+        const options = shuffleArray(
           question.options.map((option, index) => ({ option, index })),
           random,
         );
