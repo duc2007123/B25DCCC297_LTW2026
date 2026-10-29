@@ -18,6 +18,7 @@ const App = () => {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [playerName, setPlayerName] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -47,8 +48,27 @@ const App = () => {
   return (
     <Routes>
       <Route path="/" element={<Layout buildTag={BUILD_TAG} />}>
-        <Route index element={<Home />} />
-        <Route path="play" element={<Play />} />
+        <Route
+          index
+          element={(
+            <Home
+              history={[]}
+              playerName={playerName}
+              onPlayerNameChange={setPlayerName}
+            />
+          )}
+        />
+        <Route
+          path="play"
+          element={(
+            <Play
+              questions={questions}
+              loading={loading}
+              loadError={loadError}
+              playerName={playerName}
+            />
+          )}
+        />
         <Route path="result" element={<Result />} />
         <Route path="history" element={<History />} />
         <Route
