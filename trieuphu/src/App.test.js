@@ -358,6 +358,93 @@ test('ends the game when the timer expires and records the timeout result', asyn
   );
 });
 
+test('awards the fifth-question safety prize when time runs out on question seven', async () => {
+  jest.useFakeTimers();
+
+  await act(async () => {
+    render(
+      <MemoryRouter
+        initialEntries={['/']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <App />
+      </MemoryRouter>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  fireEvent.change(screen.getByLabelText('Tên người chơi'), {
+    target: { value: 'An' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu' }));
+
+  const correctAnswers = ['b', 'c', 'a', 'd', 'b', 'c'];
+  correctAnswers.forEach((answer) => {
+    fireEvent.keyDown(window, { key: answer });
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+  });
+
+  expect(screen.getByText('Câu 7/15')).toBeInTheDocument();
+
+  act(() => {
+    jest.advanceTimersByTime(30000);
+  });
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  act(() => {
+    jest.advanceTimersByTime(2000);
+  });
+
+  expect(screen.getByRole('heading', { name: 'Hết giờ!' })).toBeInTheDocument();
+  expect(screen.getByText('6', { selector: 'dd' })).toBeInTheDocument();
+  expect(screen.getAllByText('2.000.000 đ')).toHaveLength(2);
+  expect(JSON.parse(window.localStorage.getItem('ltw_trieuphu_history'))[0]).toEqual(
+    expect.objectContaining({ name: 'An', correctCount: 6, prize: 2000000 }),
+  );
+});
+
+test('cleans up answer timers when navigating away before the result is revealed', async () => {
+  jest.useFakeTimers();
+
+  await act(async () => {
+    render(
+      <MemoryRouter
+        initialEntries={['/']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <App />
+      </MemoryRouter>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  fireEvent.change(screen.getByLabelText('Tên người chơi'), {
+    target: { value: 'An' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu' }));
+  fireEvent.click(screen.getByRole('button', { name: /Đáp án B/ }));
+  fireEvent.click(screen.getByRole('link', { name: 'Ngân hàng câu hỏi' }));
+
+  act(() => {
+    jest.advanceTimersByTime(5000);
+  });
+
+  expect(screen.getByRole('heading', { name: 'Ngân hàng câu hỏi' })).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Rất tiếc, bạn đã trả lời sai' })).not.toBeInTheDocument();
+  expect(window.localStorage.getItem('ltw_trieuphu_history')).toBe('[]');
+
+  fireEvent.keyDown(window, { key: 'a' });
+  expect(screen.getByRole('heading', { name: 'Ngân hàng câu hỏi' })).toBeInTheDocument();
+});
+
 test('shows question history in prize order and clears persisted records', async () => {
   window.localStorage.setItem('ltw_trieuphu_history', JSON.stringify([
     {
