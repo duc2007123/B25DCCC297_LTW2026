@@ -40,6 +40,100 @@ test('loads the question bank from the home page', async () => {
   }));
 });
 
+test('disables the start button until a player name is entered', async () => {
+  await act(async () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  const startButton = screen.getByRole('button', { name: 'Bắt đầu' });
+  expect(startButton).toBeDisabled();
+
+  fireEvent.change(screen.getByLabelText('Tên người chơi'), {
+    target: { value: 'An' },
+  });
+  expect(startButton).toBeEnabled();
+
+  fireEvent.change(screen.getByLabelText('Tên người chơi'), {
+    target: { value: '   ' },
+  });
+  expect(startButton).toBeDisabled();
+});
+
+test('redirects direct visits to the play page when the player name is missing', async () => {
+  await act(async () => {
+    render(
+      <MemoryRouter initialEntries={['/play']}>
+        <App />
+      </MemoryRouter>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  expect(screen.getByRole('heading', { name: /ai là triệu phú/i })).toBeInTheDocument();
+  expect(screen.queryByText('Câu 1/15')).not.toBeInTheDocument();
+});
+
+test('shows loading before the question request resolves', async () => {
+  let resolveRequest;
+  axios.get.mockReturnValueOnce(new Promise((resolve) => {
+    resolveRequest = resolve;
+  }));
+
+  const { unmount } = render(
+    <MemoryRouter initialEntries={['/questions']}>
+      <App />
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByText('Đang tải câu hỏi...')).toBeInTheDocument();
+
+  await act(async () => {
+    resolveRequest({ data: questions });
+  });
+
+  expect(screen.getByText('Có 15 câu hỏi')).toBeInTheDocument();
+  unmount();
+});
+
+test('filters questions by difficulty and case-insensitive question text', async () => {
+  await act(async () => {
+    render(
+      <MemoryRouter
+        initialEntries={['/questions']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <App />
+      </MemoryRouter>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  fireEvent.change(screen.getByLabelText('Mức độ'), {
+    target: { value: '3' },
+  });
+  expect(screen.getByText('Có 5 câu hỏi')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /component nào là chỗ hiển thị route con/i })).toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText('Mức độ'), {
+    target: { value: 'all' },
+  });
+  fireEvent.change(screen.getByPlaceholderText('Nhập từ khóa...'), {
+    target: { value: 'HOOK' },
+  });
+
+  expect(screen.getByText('Có 2 câu hỏi')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /Hook nào dùng để khai báo state/i })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /Hook nào đọc giá trị :id/i })).toBeInTheDocument();
+});
+
 test('shows the correct answer on a question detail route', async () => {
   await act(async () => {
     render(
@@ -56,6 +150,57 @@ test('shows the correct answer on a question detail route', async () => {
 
   expect(await screen.findByText('Đáp án đúng')).toBeInTheDocument();
   expect(screen.getByText('<ol>')).toBeInTheDocument();
+});
+
+test('shows a missing question message for an unknown question id', async () => {
+  await act(async () => {
+    render(
+      <MemoryRouter initialEntries={['/questions/99']}>
+        <App />
+      </MemoryRouter>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  expect(screen.getByText('Không tìm thấy câu hỏi.')).toBeInTheDocument();
+});
+
+test('shows a load error when the questions request fails', async () => {
+  const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+  axios.get.mockRejectedValueOnce(new Error('Network error'));
+
+  await act(async () => {
+    render(
+      <MemoryRouter initialEntries={['/questions']}>
+        <App />
+      </MemoryRouter>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  expect(screen.getByText('Không tải được câu hỏi.')).toBeInTheDocument();
+  consoleError.mockRestore();
+});
+
+test('keeps the navigation menu visible on the not found page', async () => {
+  await act(async () => {
+    render(
+      <MemoryRouter
+        initialEntries={['/abc']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <App />
+      </MemoryRouter>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  expect(screen.getByRole('heading', { name: 'Không tìm thấy trang' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Ngân hàng câu hỏi' })).toBeInTheDocument();
 });
 
 test('locks and reveals answers, advances the game, and records the result', async () => {

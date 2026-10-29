@@ -7,6 +7,11 @@ const Home = ({ history, playerName, onPlayerNameChange }) => {
 
   const handleStart = (event) => {
     event.preventDefault();
+
+    if (!playerName.trim()) {
+      return;
+    }
+
     navigate('/play');
   };
 
@@ -31,7 +36,13 @@ const Home = ({ history, playerName, onPlayerNameChange }) => {
               maxLength={40}
               required
             />
-            <button className="primary-button" type="submit">Bắt đầu</button>
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={!playerName.trim()}
+            >
+              Bắt đầu
+            </button>
           </div>
         </form>
         {recordHolder && (

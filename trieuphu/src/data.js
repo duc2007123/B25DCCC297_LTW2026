@@ -4,8 +4,9 @@ export const PRIZES = [
   30000000, 40000000, 80000000, 150000000, 250000000,
 ];
 
+// Câu số 5, 10, 15 là các mốc an toàn
 export const MILESTONES = [5, 10, 15];
 export const LEVELS = { 1: 'Dễ', 2: 'Trung bình', 3: 'Khó' };
 export const LETTERS = ['A', 'B', 'C', 'D'];
 export const TIME_PER_QUESTION = 30;
-export const formatMoney = (amount) => `${amount.toLocaleString('vi-VN')} đ`;
+export const formatMoney = (n) => `${n.toLocaleString('vi-VN')} đ`;
