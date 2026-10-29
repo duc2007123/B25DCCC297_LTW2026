@@ -1,7 +1,7 @@
 const BUILD_TAG = "tp-4186";
 /* eslint import/first: off */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
@@ -12,6 +12,7 @@ import Play from './pages/Play';
 import QuestionBank from './pages/QuestionBank';
 import QuestionDetail from './pages/QuestionDetail';
 import Result from './pages/Result';
+import { getHistory, saveHistory } from './services/history';
 import './App.css';
 
 const App = () => {
@@ -19,6 +20,7 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [playerName, setPlayerName] = useState('');
+  const [history, setHistory] = useState(getHistory);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -45,6 +47,27 @@ const App = () => {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    saveHistory(history);
+  }, [history]);
+
+  const handleGameComplete = useCallback((result) => {
+    const { name, prize, correctCount } = result;
+    const record = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name,
+      prize,
+      correctCount,
+      playedAt: new Date().toLocaleString('vi-VN'),
+    };
+
+    setHistory((previousHistory) => [...previousHistory, record]);
+  }, []);
+
+  const handleClearHistory = () => {
+    setHistory([]);
+  };
+
   return (
     <Routes>
       <Route path="/" element={<Layout buildTag={BUILD_TAG} />}>
@@ -52,7 +75,7 @@ const App = () => {
           index
           element={(
             <Home
-              history={[]}
+              history={history}
               playerName={playerName}
               onPlayerNameChange={setPlayerName}
             />
@@ -66,11 +89,20 @@ const App = () => {
               loading={loading}
               loadError={loadError}
               playerName={playerName}
+              onFinish={handleGameComplete}
             />
           )}
         />
         <Route path="result" element={<Result />} />
-        <Route path="history" element={<History />} />
+        <Route
+          path="history"
+          element={(
+            <History
+              history={history}
+              onClear={handleClearHistory}
+            />
+          )}
+        />
         <Route
           path="questions"
           element={(

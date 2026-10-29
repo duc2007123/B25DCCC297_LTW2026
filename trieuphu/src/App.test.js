@@ -58,7 +58,7 @@ test('shows the correct answer on a question detail route', async () => {
   expect(screen.getByText('<ol>')).toBeInTheDocument();
 });
 
-test('locks and reveals answers, advances the game, and shows the result', async () => {
+test('locks and reveals answers, advances the game, and records the result', async () => {
   jest.useFakeTimers();
 
   await act(async () => {
@@ -80,7 +80,7 @@ test('locks and reveals answers, advances the game, and shows the result', async
   fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu' }));
   expect(screen.getByText('Câu 1/15')).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: /Đáp án B/ }));
+  fireEvent.keyDown(window, { key: 'b' });
   const firstAnswer = screen.getByRole('button', { name: /Đáp án B/ });
   expect(firstAnswer).toHaveClass('answer-button--selected');
 
@@ -106,5 +106,7 @@ test('locks and reveals answers, advances the game, and shows the result', async
     jest.advanceTimersByTime(2000);
   });
   expect(screen.getByRole('heading', { name: 'Rất tiếc, bạn đã trả lời sai' })).toBeInTheDocument();
-  expect(screen.getAllByText('0 đ')).toHaveLength(2);
+  expect(JSON.parse(window.localStorage.getItem('ltw_trieuphu_history'))[0]).toEqual(
+    expect.objectContaining({ name: 'An', correctCount: 1, prize: 0 }),
+  );
 });

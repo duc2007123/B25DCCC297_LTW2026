@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import AudienceChart from '../components/AudienceChart';
+import Lifelines from '../components/Lifelines';
 import MoneyLadder from '../components/MoneyLadder';
 import QuestionCard from '../components/QuestionCard';
 import Timer from '../components/Timer';
-import { PRIZES, TIME_PER_QUESTION } from '../data';
-import { calcPrize } from '../utils';
+import { TIME_PER_QUESTION } from '../data';
+import { calcPrize, getAudiencePercentages } from '../utils';
 
-const Play = ({ questions, loading, loadError, playerName }) => {
+const Play = ({ questions, loading, loadError, playerName, onFinish }) => {
   const navigate = useNavigate();
   const [questionIndex, setQuestionIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -14,7 +16,32 @@ const Play = ({ questions, loading, loadError, playerName }) => {
   const [status, setStatus] = useState('answering');
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isTimedOut, setIsTimedOut] = useState(false);
+  const [hiddenOptions, setHiddenOptions] = useState([]);
+  const [audiencePercentages, setAudiencePercentages] = useState(null);
+  const [usedLifelines, setUsedLifelines] = useState({
+    fiftyFifty: false,
+    audience: false,
+  });
+  const remainingRef = useRef(TIME_PER_QUESTION);
+  const finishedRef = useRef(false);
   const question = questions[questionIndex];
+
+  const finishGame = useCallback((reason, finalCorrectCount) => {
+    if (finishedRef.current) {
+      return;
+    }
+
+    finishedRef.current = true;
+    const result = {
+      name: playerName.trim(),
+      correctCount: finalCorrectCount,
+      prize: calcPrize(finalCorrectCount, reason),
+      reason,
+    };
+
+    onFinish(result);
+    navigate('/result', { replace: true, state: result });
+  }, [navigate, onFinish, playerName]);
 
   useEffect(() => {
     if (status !== 'answering' || !question) {
@@ -22,63 +49,57 @@ const Play = ({ questions, loading, loadError, playerName }) => {
     }
 
     const intervalId = window.setInterval(() => {
-      setRemaining((time) => {
-        if (time <= 1) {
-          setIsTimedOut(true);
-          setStatus('locked');
-          return 0;
-        }
+      const nextRemaining = remainingRef.current - 1;
+      remainingRef.current = nextRemaining;
+      setRemaining(nextRemaining);
 
-        return time - 1;
-      });
+      if (nextRemaining <= 0) {
+        setIsTimedOut(true);
+        setStatus('locked');
+      }
     }, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [question, status]);
+  }, [question, questionIndex, status]);
 
   useEffect(() => {
-    if (!question || status !== 'locked') {
+    if (!question) {
       return undefined;
     }
 
-    const revealTimeout = window.setTimeout(() => setStatus('revealed'), 1000);
-    return () => window.clearTimeout(revealTimeout);
-  }, [question, status]);
+    if (status === 'locked') {
+      const revealTimeout = window.setTimeout(() => setStatus('revealed'), 1000);
+      return () => window.clearTimeout(revealTimeout);
+    }
 
-  useEffect(() => {
-    if (!question || status !== 'revealed') {
+    if (status !== 'revealed') {
       return undefined;
     }
 
     const nextStepTimeout = window.setTimeout(() => {
-      if (isTimedOut || selectedAnswer !== question.answer) {
-        const reason = isTimedOut ? 'timeout' : 'wrong';
-        const result = {
-          name: playerName.trim(),
-          correctCount,
-          prize: calcPrize(correctCount, reason),
-          reason,
-        };
-        navigate('/result', { replace: true, state: result });
+      if (isTimedOut) {
+        finishGame('timeout', correctCount);
+        return;
+      }
+
+      if (selectedAnswer !== question.answer) {
+        finishGame('wrong', correctCount);
         return;
       }
 
       const nextCorrectCount = correctCount + 1;
       if (questionIndex === questions.length - 1) {
-        const result = {
-          name: playerName.trim(),
-          correctCount: nextCorrectCount,
-          prize: PRIZES[PRIZES.length - 1],
-          reason: 'win',
-        };
-        navigate('/result', { replace: true, state: result });
+        finishGame('win', nextCorrectCount);
         return;
       }
 
       setCorrectCount(nextCorrectCount);
-      setQuestionIndex((index) => index + 1);
+      setQuestionIndex((currentIndex) => currentIndex + 1);
       setSelectedAnswer(null);
+      setHiddenOptions([]);
+      setAudiencePercentages(null);
       setIsTimedOut(false);
+      remainingRef.current = TIME_PER_QUESTION;
       setRemaining(TIME_PER_QUESTION);
       setStatus('answering');
     }, 2000);
@@ -86,9 +107,8 @@ const Play = ({ questions, loading, loadError, playerName }) => {
     return () => window.clearTimeout(nextStepTimeout);
   }, [
     correctCount,
+    finishGame,
     isTimedOut,
-    navigate,
-    playerName,
     question,
     questionIndex,
     questions.length,
@@ -96,14 +116,77 @@ const Play = ({ questions, loading, loadError, playerName }) => {
     status,
   ]);
 
-  const handleChooseAnswer = (answerIndex) => {
-    if (status !== 'answering' || !question) {
+  useEffect(() => {
+    if (!question || !playerName.trim()) {
+      return undefined;
+    }
+
+    document.title = `Câu ${questionIndex + 1}/15 – ${playerName.trim()}`;
+    return () => {
+      document.title = 'Ai là triệu phú';
+    };
+  }, [playerName, question, questionIndex]);
+
+  const handleChooseAnswer = useCallback((answerIndex) => {
+    if (
+      status !== 'answering'
+      || hiddenOptions.includes(answerIndex)
+      || !question
+    ) {
       return;
     }
 
     setSelectedAnswer(answerIndex);
     setStatus('locked');
+  }, [hiddenOptions, question, status]);
+
+  useEffect(() => {
+    const handleKey = (event) => {
+      if (event.target instanceof HTMLElement) {
+        const tagName = event.target.tagName.toLowerCase();
+        if (tagName === 'input' || tagName === 'textarea' || tagName === 'select' || event.target.isContentEditable) {
+          return;
+        }
+      }
+
+      const answerIndex = ['a', 'b', 'c', 'd'].indexOf(event.key.toLowerCase());
+      if (answerIndex !== -1) {
+        handleChooseAnswer(answerIndex);
+      }
+    };
+
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [handleChooseAnswer]);
+
+  const handleFiftyFifty = () => {
+    if (usedLifelines.fiftyFifty || status !== 'answering' || !question) {
+      return;
+    }
+
+    const wrongOptions = question.options
+      .map((_, index) => index)
+      .filter((index) => index !== question.answer)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 2);
+
+    setHiddenOptions(wrongOptions);
+    if (usedLifelines.audience) {
+      setAudiencePercentages(getAudiencePercentages(question, wrongOptions));
+    }
+    setUsedLifelines((previous) => ({ ...previous, fiftyFifty: true }));
   };
+
+  const handleAskAudience = () => {
+    if (usedLifelines.audience || status !== 'answering' || !question) {
+      return;
+    }
+
+    setAudiencePercentages(getAudiencePercentages(question, hiddenOptions));
+    setUsedLifelines((previous) => ({ ...previous, audience: true }));
+  };
+
+  const handleQuit = () => finishGame('quit', correctCount);
 
   if (!playerName.trim()) {
     return <Navigate to="/" replace />;
@@ -136,9 +219,17 @@ const Play = ({ questions, loading, loadError, playerName }) => {
           questionNumber={questionIndex + 1}
           selectedAnswer={selectedAnswer}
           status={status}
-          hiddenOptions={[]}
+          hiddenOptions={hiddenOptions}
           onChoose={handleChooseAnswer}
         />
+        <Lifelines
+          usedLifelines={usedLifelines}
+          status={status}
+          onFiftyFifty={handleFiftyFifty}
+          onAskAudience={handleAskAudience}
+          onQuit={handleQuit}
+        />
+        {audiencePercentages && <AudienceChart percentages={audiencePercentages} />}
       </div>
       <MoneyLadder currentQuestion={questionIndex + 1} />
     </section>
